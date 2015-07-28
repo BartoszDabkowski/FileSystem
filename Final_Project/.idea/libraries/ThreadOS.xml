@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="ThreadOS">
+    <CLASSES>
+      <root url="file://$PROJECT_DIR$/ThreadOS" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
