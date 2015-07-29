@@ -53,7 +53,7 @@ private static Scheduler scheduler;
 private static Disk disk;
 private static Cache cache;
 
-// Synchronized Queues
+// Synchronized Queuesf
 private static SyncQueue waitQueue;  // for threads to wait for their child
 private static SyncQueue ioQueue;    // I/O queue
 
