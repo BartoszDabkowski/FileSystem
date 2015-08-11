@@ -24,9 +24,9 @@ public class Inode {
     Inode( short iNumber ) {                       // retrieving inode from disk
         // check to see if iNumber is negative
         if(iNumber < 0) {
-            System.out.printf("****************************************");
+            System.out.println("****************************************");
             System.out.printf("Inode::Inode() ERROR iNumber is negative\n");
-            System.out.printf("****************************************");
+            System.out.println("****************************************");
             return;
         }
 
@@ -59,9 +59,9 @@ public class Inode {
     int toDisk( short iNumber ) {                  // save to disk as the i-th inode
         // check to see if iNumber is negative
         if(iNumber < 0) {
-            System.out.printf("*****************************************");
+            System.out.println("*****************************************");
             System.out.printf("Inode::toDisk() ERROR iNumber is negative\n");
-            System.out.printf("*****************************************");
+            System.out.println("*****************************************");
             return -1;
         }
 

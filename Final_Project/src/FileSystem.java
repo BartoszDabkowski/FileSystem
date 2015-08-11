@@ -52,9 +52,9 @@ public class FileSystem {
             filetable = new FileTable(directory);
             return 0;
         } else {
-            System.out.printf("**********************************************");
+            System.out.println("**********************************************");
             System.out.printf("FileSystem::format() ERROR fileTable not empty\n");
-            System.out.printf("**********************************************");
+            System.out.println("**********************************************");
             return -1;
         }
     }
@@ -88,9 +88,9 @@ public class FileSystem {
 
         if(mode.equals("r")) {
             if(isNewFile == true) {
-                System.out.printf("********************************************************");
+                System.out.println("********************************************************");
                 System.out.printf("FileSystem::open() ERROR \"r\" cannot read from new file\n");
-                System.out.printf("********************************************************");
+                System.out.println("********************************************************");
                 return null;
             } else {
                 flag = READ;
@@ -108,9 +108,9 @@ public class FileSystem {
             seek(fileTableEntry, 0, SEEK_END);
             flag = WRITE;
         } else {
-            System.out.printf("*************************************");
+            System.out.println("*************************************");
             System.out.printf("FileSystem::open() ERROR invalid mode\n");
-            System.out.printf("*************************************");
+            System.out.println("*************************************");
             return null;
         }
 
@@ -121,9 +121,9 @@ public class FileSystem {
         if(isNewFile == true) {
             short dirBlock;
             if((dirBlock = (short)superblock.getFreeBlock()) == -1) {
-                System.out.printf("**************************************");
+                System.out.println("**************************************");
                 System.out.printf("FileSystem::open() ERROR no Free Block\n");
-                System.out.printf("***************************************");
+                System.out.println("***************************************");
                 return null;
             } else {
                 fileTableEntry.inode.toDisk(fileTableEntry.iNumber);
@@ -147,15 +147,15 @@ public class FileSystem {
                 if (filetable.ffree(ftEnt) == true) {
                     return 0;
                 } else {
-                    System.out.printf("**************************************************");
+                    System.out.println("**************************************************");
                     System.out.printf("FileSystem::close() ERROR ftEnt not found in table\n");
-                    System.out.printf("**************************************************");
+                    System.out.println("**************************************************");
                     return -1;
                 }
             } else {
-                System.out.printf("************************************");
+                System.out.println("************************************");
                 System.out.printf("FileSystem::close() ERROR count != 0\n");
-                System.out.printf("************************************");
+                System.out.println("************************************");
                 return -1;
             }
         }
@@ -166,15 +166,15 @@ public class FileSystem {
     // Returns the size in bytes of the file indicated by fd.
     int fsize(FileTableEntry ftEnt) {
         if(ftEnt == null) {
-            System.out.printf("***************************************");
+            System.out.println("***************************************");
             System.out.printf("FileSystem::fsize() ERROR ftEnt is null\n");
-            System.out.printf("****************************************");
+            System.out.println("****************************************");
             return -1;
         }
         else if(ftEnt.inode == null) {
-            System.out.printf("*********************************************");
+            System.out.println("*********************************************");
             System.out.printf("FileSystem::fsize() ERROR ftEnt.inode is null\n");
-            System.out.printf("*********************************************");
+            System.out.println("*********************************************");
             return -1;
         } else {
             return ftEnt.inode.length;
@@ -213,17 +213,17 @@ public class FileSystem {
 
         // check to see if file exists
         if((iNum = directory.namei(filename)) == -1) {
-            System.out.printf("**********************************************");
+            System.out.println("**********************************************");
             System.out.printf("FileSystem::delete() ERROR file does not exist\n");
-            System.out.printf("**********************************************");
+            System.out.println("**********************************************");
             return -1;
         } else {
             if(directory.ifree(iNum) == true) {
                 return 0;
             } else {
-                System.out.printf("****************************************************");
+                System.out.println("****************************************************");
                 System.out.printf("FileSystem::delete() ERROR file not found in ifree()\n");
-                System.out.printf("****************************************************");
+                System.out.println("****************************************************");
                 return -1;
             }
         }
@@ -268,9 +268,9 @@ public class FileSystem {
                     seekPointer += offset + fileSize;
                     break;
                 default:
-                    System.out.printf("*************************************");
+                    System.out.println("*************************************");
                     System.out.printf("FileSystem::seek() ERROR whence = %d\n", whence);
-                    System.out.printf("*************************************");
+                    System.out.println("*************************************");
             }
 
             // If the user attempts to set the seek pointer to a negative number; clamp it to zero
