@@ -254,23 +254,22 @@ public class FileSystem {
         synchronized (ftEnt) {
             fileSize = fsize(ftEnt);
             seekPointer = ftEnt.seekPtr;
-            switch (whence) {
-                case SEEK_SET:
-                    // the file's seek pointer is set to offset bytes from the beginning of the file
-                    seekPointer = offset;
-                    break;
-                case SEEK_CUR:
-                    // the file's seek pointer is set to its current value plus the offset.
-                    seekPointer += offset;
-                    break;
-                case SEEK_END:
-                    // the file's seek pointer is set to the size of the file plus the offset.
-                    seekPointer += offset + fileSize;
-                    break;
-                default:
-                    System.out.println("*************************************");
-                    System.out.printf("FileSystem::seek() ERROR whence = %d\n", whence);
-                    System.out.println("*************************************");
+
+            if(whence == SEEK_SET) {
+                // the file's seek pointer is set to offset bytes from the beginning of the file
+                seekPointer = offset;
+            }
+            else if(whence == SEEK_CUR) {
+                // the file's seek pointer is set to its current value plus the offset.
+                seekPointer += offset;
+            }
+            else if(whence == SEEK_END) {
+                // the file's seek pointer is set to the size of the file plus the offset.
+                seekPointer += offset + fileSize;
+            } else {
+                System.out.println("*************************************");
+                System.out.printf("FileSystem::seek() ERROR whence = %d\n", whence);
+                System.out.println("*************************************");
             }
 
             // If the user attempts to set the seek pointer to a negative number; clamp it to zero
