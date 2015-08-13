@@ -7,9 +7,7 @@ public class FileSystem {
     //flags that correspond with Inode
     public static final short UNUSED = 0;
     public static final short USED = 1;
-    public static final short READ = 2;
-    public static final short WRITE = 3;
-    public static final short DELETE =  4;
+
 
     private Superblock superblock;
     private Directory directory;
@@ -31,7 +29,7 @@ public class FileSystem {
         FileTableEntry dirEnt = open("/", "r");
         int dirSize = fsize(dirEnt);
 
-        if(dirSize > 0) {
+        if (dirSize > 0) {
             byte[] dirData = new byte[dirSize];
             read(dirEnt, dirData);
             directory.bytes2directory(dirData);
@@ -42,19 +40,32 @@ public class FileSystem {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+    void sync() {
+        FileTableEntry ftEnt = open("/", "w");
+
+        //gets the data from the directory in bytes
+        byte[] dirData = directory.directory2bytes();
+        write(ftEnt, dirData);
+        close(ftEnt);
+
+        //sync superblock with disk
+        superblock.sync();
+    }
+
+    //----------------------------------------------------------------------------------------------------------------------
     // Formats the disk (Disk.java's data contents). The parameter files specifies
     // the maximum number of files to be created (the number of inodes to be allocated)
     // in your file system. The return value is 0 on success, otherwise -1.
     int format(int files) {
-        if(filetable.fempty() == true) {
+        if (filetable.fempty() == true) {
             superblock.format(files);
             directory = new Directory(superblock.totalInodes);
             filetable = new FileTable(directory);
             return 0;
         } else {
-            System.out.println("**********************************************");
+            System.out.println("*********************************************");
             System.out.printf("FileSystem::format() ERROR fileTable not empty\n");
-            System.out.println("**********************************************");
+            System.out.println("*********************************************");
             return -1;
         }
     }
@@ -76,7 +87,7 @@ public class FileSystem {
         boolean isNewFile; // new file or not
 
         //checks to see if file is new or already exists
-        if(directory.namei(filename) == -1) {
+        if (directory.namei(filename) == -1) {
             isNewFile = true;
         } else {
             isNewFile = false;
@@ -86,27 +97,24 @@ public class FileSystem {
 
         FileTableEntry fileTableEntry = filetable.falloc(filename, mode);
 
-        if(mode.equals("r")) {
-            if(isNewFile == true) {
+        if (mode.equals("r")) {
+            if (isNewFile == true) {
                 System.out.println("********************************************************");
                 System.out.printf("FileSystem::open() ERROR \"r\" cannot read from new file\n");
                 System.out.println("********************************************************");
                 return null;
             } else {
-                flag = READ;
+                flag = USED;
             }
-        }
-        else if(mode.equals("w")) {
+        } else if (mode.equals("w")) {
             deallocateAllBlocks(fileTableEntry);
-            flag = WRITE;
+            flag = USED;
             isNewFile = true;
-        }
-        else if(mode.equals("w+")) {
-            flag = WRITE;
-        }
-        else if(mode.equals("a")) {
+        } else if (mode.equals("w+")) {
+            flag = USED;
+        } else if (mode.equals("a")) {
             seek(fileTableEntry, 0, SEEK_END);
-            flag = WRITE;
+            flag = USED;
         } else {
             System.out.println("*************************************");
             System.out.printf("FileSystem::open() ERROR invalid mode\n");
@@ -114,13 +122,13 @@ public class FileSystem {
             return null;
         }
 
-        if(fileTableEntry.count == 1) {
+        if (fileTableEntry.count == 1) {
             fileTableEntry.inode.flag = flag;
         }
 
-        if(isNewFile == true) {
+        if (isNewFile == true) {
             short dirBlock;
-            if((dirBlock = (short)superblock.getFreeBlock()) == -1) {
+            if ((dirBlock = (short) superblock.getFreeBlock()) == -1) {
                 System.out.println("**************************************");
                 System.out.printf("FileSystem::open() ERROR no Free Block\n");
                 System.out.println("***************************************");
@@ -135,7 +143,7 @@ public class FileSystem {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-    // Closes the file corresponding to fd, commits all file transactions on this file,
+    // Closes the file corresponding to ftEnt, commits all file transactions on this file,
     // and unregisters fd from the user file descriptor table of the calling thread's TCB.
     // The return value is 0 in success, otherwise -1.
     int close(FileTableEntry ftEnt) {
@@ -163,21 +171,24 @@ public class FileSystem {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-    // Returns the size in bytes of the file indicated by fd.
+    // Returns the size in bytes of the file indicated by ftEnt.
     int fsize(FileTableEntry ftEnt) {
-        if(ftEnt == null) {
-            System.out.println("***************************************");
-            System.out.printf("FileSystem::fsize() ERROR ftEnt is null\n");
-            System.out.println("****************************************");
-            return -1;
-        }
-        else if(ftEnt.inode == null) {
-            System.out.println("*********************************************");
-            System.out.printf("FileSystem::fsize() ERROR ftEnt.inode is null\n");
-            System.out.println("*********************************************");
-            return -1;
-        } else {
-            return ftEnt.inode.length;
+        synchronized (ftEnt) {
+            //ftEnt is null return 0
+            if (ftEnt == null) {
+                System.out.println("***************************************");
+                System.out.printf("FileSystem::fsize() ERROR ftEnt is null\n");
+                System.out.println("****************************************");
+                return -1;
+            } else if (ftEnt.inode == null) {
+                System.out.println("*********************************************");
+                System.out.printf("FileSystem::fsize() ERROR ftEnt.inode is null\n");
+                System.out.println("*********************************************");
+                return -1;
+                // return the inodes length
+            } else {
+                return ftEnt.inode.length;
+            }
         }
     }
 
@@ -189,6 +200,7 @@ public class FileSystem {
     // as possible, putting them into the beginning of buffer. It increments the seek pointer by
     // the number of bytes to have been read. The return value is the number of bytes that have
     // been read, or a negative value upon an error.
+
     int read(FileTableEntry ftEnt, byte[] buffer) {
         return -1;
     }
@@ -209,23 +221,15 @@ public class FileSystem {
     // Destroys the file specified by fileName. If the file is currently open, it is not destroyed until
     // the last open on it is closed, but new attempts to open it will fail.
     int delete(String filename) {
-        short iNum;
+        FileTableEntry ftEnt = open(filename, "w");
 
-        // check to see if file exists
-        if((iNum = directory.namei(filename)) == -1) {
-            System.out.println("**********************************************");
-            System.out.printf("FileSystem::delete() ERROR file does not exist\n");
-            System.out.println("**********************************************");
-            return -1;
+        if (close(ftEnt) == 0 && directory.ifree(ftEnt.iNumber) == true) {
+            return 0;
         } else {
-            if(directory.ifree(iNum) == true) {
-                return 0;
-            } else {
-                System.out.println("****************************************************");
-                System.out.printf("FileSystem::delete() ERROR file not found in ifree()\n");
-                System.out.println("****************************************************");
-                return -1;
-            }
+            System.out.println("*************************");
+            System.out.printf("FileSystem::delete() ERROR \n");
+            System.out.println("*************************");
+            return -1;
         }
     }
 
@@ -247,7 +251,7 @@ public class FileSystem {
     // If the user attempts to set the seek pointer to a negative number you must clamp it to zero. If the user
     // attempts to set the pointer to beyond the file size, you must set the seek pointer to the end of the file.
     // In both cases, you should return success.
-    int seek (FileTableEntry ftEnt, int offset, int whence) {
+    int seek(FileTableEntry ftEnt, int offset, int whence) {
 
         int seekPointer;
         int fileSize;
@@ -255,15 +259,13 @@ public class FileSystem {
             fileSize = fsize(ftEnt);
             seekPointer = ftEnt.seekPtr;
 
-            if(whence == SEEK_SET) {
+            if (whence == SEEK_SET) {
                 // the file's seek pointer is set to offset bytes from the beginning of the file
                 seekPointer = offset;
-            }
-            else if(whence == SEEK_CUR) {
+            } else if (whence == SEEK_CUR) {
                 // the file's seek pointer is set to its current value plus the offset.
                 seekPointer += offset;
-            }
-            else if(whence == SEEK_END) {
+            } else if (whence == SEEK_END) {
                 // the file's seek pointer is set to the size of the file plus the offset.
                 seekPointer += offset + fileSize;
             } else {
@@ -273,13 +275,13 @@ public class FileSystem {
             }
 
             // If the user attempts to set the seek pointer to a negative number; clamp it to zero
-            if(seekPointer < 0) {
+            if (seekPointer < 0) {
                 seekPointer = 0;
             }
 
             // If the user attempts to set the pointer to beyond the file size;
             // set the seek pointer to the end of the file.
-            if(seekPointer > fileSize) {
+            if (seekPointer > fileSize) {
                 seekPointer = fileSize;
             }
 
@@ -295,3 +297,4 @@ public class FileSystem {
         return false;
     }
 }
+

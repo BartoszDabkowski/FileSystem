@@ -93,4 +93,13 @@ public class Inode {
 
         return 0;
     }
+
+    short getIndexBlockNumber( ) {
+        return indirect;
+    }
+
+
+    int findTargetBlock(int offset) {
+
+    }
 }
