@@ -4,6 +4,8 @@
 
 // The file table allocates new file table entry for the files and
 // save the corresponding inode into Disk and free the entry.
+
+
 import java.util.*;
 
 public class FileTable {
@@ -23,8 +25,8 @@ public class FileTable {
     // immediately write back this inode to the disk
     // return a reference to this file (structure) table entry
     public synchronized FileTableEntry falloc( String filename, String mode ) {
-        Inode inode;
-        short iNumber;
+        Inode inode = null;
+        short iNumber = -1;
 
         while(true) {
             if (filename.equals("/")) {
@@ -32,40 +34,40 @@ public class FileTable {
             } else {
                 iNumber = dir.namei(filename);
             }
-            if (iNumber < 0) break;
-            inode = new Inode(iNumber);
-            if (mode.equals("r")) {
-                if (inode.flag != 0 && inode.flag != 1) {
-                    try {
-                        this.wait();
-                    } catch (InterruptedException e){}
-                    continue;
+            if (iNumber >= 0) {
+                inode = new Inode(iNumber);
+                if (mode.equals("r")) {
+
+                    // if it is in writing, wait
+                    if (inode.flag == 3) {
+                        try {
+                            wait();
+                        } catch (InterruptedException e) {}
+                    } else {
+                        inode.flag = 2;
+                        break;
+                    }
+
+                }else {
+
+                    if (inode.flag != 1 && inode.flag != 0) {
+                        try {
+                            wait();
+                        } catch (InterruptedException e) { }
+                    } else {
+                        inode.flag = 3;
+                        break;
+                    }
+
                 }
-                inode.flag = 1;
+            } else if (!mode.equals("r")) {
+                iNumber = dir.ialloc(filename);
+                inode = new Inode(iNumber);
+                inode.flag = 3;
                 break;
+            } else {
+                return null;
             }
-
-            if (inode.flag != 0 && inode.flag != 3) {
-                if (inode.flag == 1 || inode.flag == 2) {
-                    inode.flag = (short)(inode.flag + 3);
-                    inode.toDisk(iNumber);
-                }
-                try {
-                    this.wait();;
-                } catch (InterruptedException e) {}
-                continue;
-            }
-
-            inode.flag = 2;
-            break;
-        }
-
-        if (!mode.equals("r")) {
-            iNumber = dir.ialloc(filename);
-            inode = new Inode();
-            inode.flag = 2;
-        } else {
-            return null;
         }
 
         inode.count++;
@@ -81,17 +83,24 @@ public class FileTable {
     // free this file table entry.
     // return true if this file table entry found in my table
     public synchronized boolean ffree( FileTableEntry e ) {
-        Inode inode = e.inode;
+        Inode inode = new Inode(e.iNumber);
         if (table.removeElement(e)) {
-            inode.count--;
-            if (inode.flag == 1 || inode.flag == 2) {
-                inode.flag = 0;
-            } else if (inode.flag == 4 || inode.flag == 5) {
-                inode.flag = 3;
+
+            if (inode.flag == 2) {
+                // if last one reading
+                if (inode.count == 1) {
+                    inode.flag = 1;
+                    notify();
+                }
+
+            } else if (inode.flag == 3) {
+                inode.flag = 1;
+                notifyAll();
             }
+
+            inode.count--;
             inode.toDisk(e.iNumber);
             e = null;
-            this.notify();
             return true;
         }
         return false;
