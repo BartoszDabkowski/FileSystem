@@ -94,12 +94,75 @@ public class Inode {
         return 0;
     }
 
-    short getIndexBlockNumber( ) {
+    short getIndexBlockNumber() {
         return indirect;
     }
 
+    public boolean registerTargetBlock(short freeBlock) {
+        // find inode that matches
+        for (int i = 0; i < direct.length; i++) {
+            if (direct[i] == -1) {
+                direct[i] = freeBlock;
+                return true;
+            }
+        }
+        return false;
+    }
 
+    public final int getNumberOfIndirectBlocks() {
+        // return the number of indirect blocks
+        int num = (length / Disk.blockSize) - direct.length;
+        // default to 0 if negative
+        if (num < 0) {
+            return 0;
+        }
+        return num;
+    }
+
+    //find the block
     int findTargetBlock(int offset) {
+        int targetBlock = offset / Disk.blockSize;
 
+        // its an indirect pointer
+        if (direct.length <= targetBlock) {
+            // block does not exist
+            if (indirect < 0) {
+                return -1;
+            }
+            // get from disk
+            byte[] indirectBlock = new byte[Disk.blockSize];
+            SysLib.rawread(indirect, indirectBlock);
+            return SysLib.bytes2short(indirectBlock, (targetBlock - direct.length) * 2);
+        }
+        // its a direct pointer
+        else {
+            return direct[targetBlock];
+        }
+    }
+
+    // changes direct blocks to -1 and returns the freed blocks
+    public short[] freeDirectBlocks() {
+        short[] returnedDirectBlocks = new short[directSize];
+        // replace direct blocks with -1 & replace returnedDirectBlocks
+        // with direct block values
+        for (int i = 0; i < directSize; i++) {
+            returnedDirectBlocks[i] = direct[i];
+            direct[i] = -1;
+        }
+        return returnedDirectBlocks;
+    }
+
+    public byte[] unregisterIndexBlock() {
+        //does not exist
+        if( indirect < 0 ) {
+            return null;
+        }
+        //exists
+        else {
+            byte[] returnedIndexBlock = new byte[Disk.blockSize];
+            SysLib.rawread( indirect, returnedIndexBlock );
+            indirect = -1;
+            return returnedIndexBlock;
+        }
     }
 }

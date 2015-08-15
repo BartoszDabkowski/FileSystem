@@ -57,6 +57,7 @@ public class FileSystem {
     // the maximum number of files to be created (the number of inodes to be allocated)
     // in your file system. The return value is 0 on success, otherwise -1.
     int format(int files) {
+        //checks to see if filetable is empty
         if (filetable.fempty() == true) {
             superblock.format(files);
             directory = new Directory(superblock.totalInodes);
@@ -202,7 +203,37 @@ public class FileSystem {
     // been read, or a negative value upon an error.
 
     int read(FileTableEntry ftEnt, byte[] buffer) {
-        return -1;
+        if (ftEnt == null) {
+            System.out.println("*************************************");
+            System.out.printf("FileSystem::read() ERROR ftEnt is null\n");
+            System.out.println("**************************************");
+            return -1;
+        }
+        Inode node = ftEnt.inode;
+        byte[] currentBlock = new byte[Disk.blockSize];
+
+        if(node.findTargetBlock(ftEnt.seekPtr) == -1) {
+            return -1;
+        }
+        else {
+            SysLib.rawread(node.findTargetBlock(ftEnt.seekPtr), currentBlock);
+
+            for (int i = 0; i < buffer.length; i++) {
+                if (ftEnt.seekPtr % Disk.blockSize == 0) {
+
+                    if (node.findTargetBlock(ftEnt.seekPtr) >= 0) {
+                        SysLib.rawread(node.findTargetBlock(ftEnt.seekPtr), currentBlock);
+                    }
+                    else {
+                        return -1;
+                    }
+                }
+                buffer[i] = currentBlock[ftEnt.seekPtr % Disk.blockSize];
+                ftEnt.seekPtr++;
+            }
+
+            return buffer.length;
+        }
     }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -294,7 +325,29 @@ public class FileSystem {
 //----------------------------------------------------------------------------------------------------------------------
 
     private boolean deallocateAllBlocks(FileTableEntry ftEnt) {
-        return false;
+        if (ftEnt.inode.length <= 0 ) {
+            return true;
+        }
+
+        short[] freedDirectBlocks = ftEnt.inode.freeDirectBlocks();
+
+        for(int i = 0; i < freedDirectBlocks.length; i++) {
+            if ( freedDirectBlocks[i] == -1 ) {
+                break;
+            }
+            superblock.returnBlock(i);
+        }
+
+
+        byte[] freeBlocks = ftEnt.inode.unregisterIndexBlock();
+
+        if ( freeBlocks != null ) {
+            for ( int i = 0; i < freeBlocks.length; i += 2 ) {
+                int freeBlock = (short) SysLib.bytes2short(freeBlocks, i);
+                superblock.returnBlock(freeBlock);
+            }
+        }
+        return true;
     }
 }
 
