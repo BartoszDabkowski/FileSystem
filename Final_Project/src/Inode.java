@@ -3,28 +3,20 @@
 // Inode
 
 public class Inode {
-    
-    // Inode has static size which is 32 byte
-    private final static int iNodeSize = 32;
-    
-    // And static directly size is 11
-    private final static int directSize = 11;
-    
-    
-    // the state of flag
-    private final static int UNUSED = 0;
-    private final static int USED = 1;
-    private final static int WRITE = 2;
-    
+
+    private final static int iNodeSize = 32;       // fix to 32 bytes
+    private final static int directSize = 11;      // # direct pointers
+
+
     public int length;                             // file size in bytes
     public short count;                            // # file-table entries pointing to this
-    public short flag;                             // 0 = unused, 1 = used...
-    public short direct[] = new short[directSize]; // set the direct data size
-    public short indirect;                         // set the pointer to point the indirect data
+    public short flag;                             // 0 = unused, 1 = used, ...
+    public short direct[] = new short[directSize]; // direct pointers
+    public short indirect;                         // a indirect pointer
     
     
-    // ----------------------------------------------------------------------------
-    
+// ----------------------------------------------------------------------------
+    // Default constructor
     public Inode() {
         length = 0;
         count = 0;
@@ -34,13 +26,15 @@ public class Inode {
         indirect = -1;
     }
     
-    // ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
     
     // Code taken directly from power point
+    // Retreiving Inode from disk
     public Inode(short iNumber) {
         int blockNumber = iNumber / 16 + 1;
         byte[] data = new byte[Disk.blockSize];
         SysLib.rawread(blockNumber, data);
+        // gets offset of disk
         int offset = (iNumber % 16) * iNodeSize;
         
         length = SysLib.bytes2int(data, offset);
@@ -57,8 +51,9 @@ public class Inode {
         indirect = SysLib.bytes2short(data, offset);
     }
     
-    // ----------------------------------------------------------------------------
-    
+// ----------------------------------------------------------------------------
+
+    // save to disk as the i-th inode
     public void toDisk( short iNumber ) {
         
         int target = (iNumber / 16) + 1;
@@ -78,53 +73,31 @@ public class Inode {
         
         SysLib.rawwrite(target, temp);
     }
-    
-    public int findIndexBlock( ) {
-        return indirect;
-    }
-    
-    // ----------------------------------------------------------------------------
-    
-    public boolean registerDirectBlock(short freeBlock) {
+
+// ----------------------------------------------------------------------------
+
+    // sets next free direct block to block
+    public boolean setDirBlock(short block) {
         for (int i = 0; i < direct.length; i++) {
             if (direct[i] == -1) {
-                direct[i] = freeBlock;
+                direct[i] = block;
+                // free block found return true
                 return true;
             }
         }
+        //all blocks full so return false
         return false;
     }
     
-    // ----------------------------------------------------------------------------
-    
-    public boolean registerTargetBlock(short freeBlock) {
-        for (short dir : direct) {
-            if (dir == -1) {
-                dir = freeBlock;
-                return true;
-            }
-        }
-        return false;
-    }
-    
-    // ----------------------------------------------------------------------------
-    
-    public boolean registerIndexBlock(short indexBlockNumber) {
-        if(findIndexBlock() == -1) {
-            return false;
-        }
-        else {
-            indirect = indexBlockNumber;
-            return true;
-        }
-    }
-    
-    // ----------------------------------------------------------------------------
-    
-    public byte[] unregisterIndexBlock( ) {
+// ----------------------------------------------------------------------------
+
+    // frees indirect block and returns the index block
+    public byte[] freeIndexBlocks() {
+        // block doesnt exist
         if(indirect < 0) {
             return null;
         } else {
+        // block exists
             byte[] indexBlock = new byte[Disk.blockSize];
             SysLib.rawread(indirect, indexBlock);
             indirect = -1;
@@ -132,20 +105,24 @@ public class Inode {
         }
     }
     
-    // ----------------------------------------------------------------------------
-    
-    public short[] freeDirectBlocks() {
+// ----------------------------------------------------------------------------
+
+    // frees direct blocks and returns the previous data
+    public short[] freeDirBlocks() {
         short[] freeDirBlocks = new short[directSize];
         for (int i = 0; i < directSize; i++) {
             freeDirBlocks[i] = direct[i];
+            // free direct block
             direct[i] = -1;
         }
+        // return data from direct blocks
         return freeDirBlocks;
     }
     
-    // ----------------------------------------------------------------------------
-    
-    public final int numIndirectBlocks() {
+// ----------------------------------------------------------------------------
+
+    //gets the number of the indirect block
+    public final int getNumIndirect() {
         int num = (length / Disk.blockSize) - direct.length;
         if (num < 0) {
             return 0;
@@ -153,8 +130,9 @@ public class Inode {
         return num;
     }
     
-    // ----------------------------------------------------------------------------
-    
+// ----------------------------------------------------------------------------
+
+    // finds the target block by the offset
     public short findTargetBlock(int offset) {
         int targetBlock = offset / Disk.blockSize;
         if (targetBlock >= direct.length) {
@@ -167,6 +145,7 @@ public class Inode {
             return SysLib.bytes2short(indirectBlock, (targetBlock - direct.length) * 2);
         }
         else {
+            // returns the targeted block
             return direct[targetBlock];
         }
     }
