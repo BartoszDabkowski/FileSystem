@@ -17,10 +17,10 @@ public class FileTable {
     private Directory directory;          // the root directory
     private Inode[] iNodes;
 
-    public FileTable( Directory directory, Inode[] iList ) {
+    public FileTable(Directory directory, Inode[] iNodes) {
         table = new Vector<FileTableEntry>();   // instantiate a file (structure) table
         this.directory = directory;             // receive a reference to the Director from the file
-        this.iNodes = iList;
+        this.iNodes = iNodes;
     }
 
     // allocate a new file (structure) table entry for this file name
