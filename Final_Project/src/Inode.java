@@ -1,10 +1,13 @@
 // Xiaoyu Liang & Bartosz Dabkowski
 // CSS430 Final Project
 // Inode
+// the Inode class keeps data to describe a file. Our Inode keeps track of 11 direct
+// pointer and 1 indirect pointer. Additionally, it keeps track of the file size, the
+// number of file table entries, and a whether the file is used or unused.
 
 public class Inode {
 
-    private final static int iNodeSize = 32;       // fix to 32 bytes
+    private final static int iNodeSize = 32;       // fix to 32s bytes
     private final static int directSize = 11;      // # direct pointers
 
 

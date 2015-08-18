@@ -1,3 +1,7 @@
+// Xiaoyu Liang & Bartosz Dabkowski
+// CSS430 Final Project
+// Kernel
+
 import java.io.BufferedReader;
 
 import java.io.IOException;
@@ -105,7 +109,7 @@ public class Kernel
                         }
                         return ERROR;
                     case EXIT:
-                        if ( ( myTcb = scheduler.getMyTcb( ) ) != null ) {
+                        if (( myTcb = scheduler.getMyTcb( )) != null ) {
                             int myPid = myTcb.getPid( ); // get my parent ID
                             int myTid = myTcb.getTid( ); // get my ID
                             if ( myPid != -1 ) {
@@ -134,9 +138,9 @@ public class Kernel
                         // now you can access data in buffer
                         return OK;
                     case RAWWRITE: // write a block of data to disk
-                        while ( disk.write( param, ( byte[] )args ) == false )
+                        while (disk.write( param, ( byte[] )args ) == false)
                             ioQueue.enqueueAndSleep( COND_DISK_REQ );
-                        while ( disk.testAndResetReady( ) == false )
+                        while (disk.testAndResetReady( ) == false)
                             ioQueue.enqueueAndSleep( COND_DISK_FIN );
                         // it's possible that a thread waiting to make a request was released by the disk,
                         // but then promptly looped back, found the buffer wasn't available for sending (bufferReady == true)
@@ -145,9 +149,9 @@ public class Kernel
 
                         return OK;
                     case SYNC:     // synchronize disk data to a real file
-                        while ( disk.sync( ) == false )
+                        while (disk.sync( ) == false)
                             ioQueue.enqueueAndSleep( COND_DISK_REQ );
-                        while ( disk.testAndResetReady( ) == false )
+                        while (disk.testAndResetReady( ) == false )
                             ioQueue.enqueueAndSleep( COND_DISK_FIN );
 
                         // it's possible that a thread waiting to make a request was released by the disk,

@@ -1,10 +1,18 @@
+// Xiaoyu Liang & Bartosz Dabkowski
+// CSS430 Final Project
+// FileSystem
+// The FileSystem class is responsible for combining all of the other classes
+// and providing a meaningful way for them to interact. This class allows the
+// user to format the disk, open an entry, read from an entry, write to an
+// entry, update the seek pointer, close an entry, delete an entry, and return
+// the file size.
 
 public class FileSystem {
     
     private Superblock superblock;
     private Directory directory;
     private FileTable fileTable;
-    private Inode[] iNodes;
+    private Inode iNodes[];
     
 // ----------------------------------------------------------------------------
     

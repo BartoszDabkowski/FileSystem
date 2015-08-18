@@ -29,18 +29,19 @@ public class Directory {
     //---------------------------------------------------------------------------
     // assumes data[] received directory information from disk
     // initializes the Directory instance with this data[]
+    // copied directly from online slides
     public int bytes2directory( byte data[] ) {
-        int index = 0;
+        int offset = 0;
         for (int i = 0; i < fsizes.length; i++) {
-            fsizes[i] = SysLib.bytes2int(data, index);
-            index += 4;
+            fsizes[i] = SysLib.bytes2int(data, offset);
+            offset += 4;
         }
         for (int i = 0; i < fnames.length; i++) {
-            String s = new String(data, index, maxChars * 2);
-            s.getChars(0, fsizes[i], fnames[i], 0);
-            index = index + maxChars * 2;
+            String string = new String(data, offset, maxChars * 2);
+            string.getChars(0, fsizes[i], fnames[i], 0);
+            offset = offset + maxChars * 2;
         }
-        return index;
+        return offset;
     }
 
     //---------------------------------------------------------------------------
@@ -57,8 +58,8 @@ public class Directory {
         }
 
         for (int i = 0; i < fnames.length; i++) {
-            String s = new String(fnames[i], 0, fsizes[i]);
-            byte[] temp = s.getBytes();
+            String fName = new String(fnames[i], 0, fsizes[i]);
+            byte[] temp = fName.getBytes();
             System.arraycopy(temp, 0, data, index, temp.length);
             index = index + maxChars * 2;
         }
@@ -104,8 +105,8 @@ public class Directory {
     public short namei( String filename ) {
         for (int i = 0; i < fsizes.length; i++) {
             if (fsizes[i] > 0) {
-                String target = new String(fnames[i], 0, fsizes[i]);
-                if (target.equals(filename)) {
+                String fName = new String(fnames[i], 0, fsizes[i]);
+                if (fName.equals(filename)) {
                     return (short)i;
                 }
             }
